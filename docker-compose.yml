@@ -1,0 +1,33 @@
+version: '3.4'
+
+services:
+  usersapi:
+    image: ${DOCKER_REGISTRY-}usersapi
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - "REDIS_CONNECTION_STRING=redis://usersdb:7000"
+    depends_on:
+      - usersdb
+    ports:
+      - "6000:80"
+
+  usersdb:
+   container_name: usersdb
+   image: redis/redis-stack-server
+   restart: always
+   environment:
+    - "REDIS_ARGS= --SAVE 10 1 --PORT 7000"
+   ports:
+    - "7000:7000"
+   deploy:
+     replicas: 1
+     restart_policy:
+        condition: on-failure
+   volumes:
+    - redisData:/data
+    
+volumes:
+  redisData:
