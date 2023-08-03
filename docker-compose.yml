@@ -2,17 +2,22 @@ version: '3.4'
 
 services:
   usersapi:
+    container_name: usersapi
     image: ${DOCKER_REGISTRY-}usersapi
     build:
       context: .
       dockerfile: Dockerfile
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - "REDIS_CONNECTION_STRING=redis://usersdb:7000"
+      - REDIS_CONNECTION_STRING=redis://usersdb:7000
+      - EPPlus__ExcelPackage__Compatibility__IsWorksheets1Based=false
+      - EPPlus__ExcelPackage__LicenseContext=NonCommercial
     depends_on:
       - usersdb
     ports:
-      - "6000:80"
+      - "31431:80"
+    networks: 
+        - nxt
 
   usersdb:
    container_name: usersdb
@@ -28,6 +33,13 @@ services:
         condition: on-failure
    volumes:
     - redisData:/data
+   networks: 
+        - nxt
+
+networks:
+   nxt:
+    driver: bridge
+    external: true
     
 volumes:
   redisData:

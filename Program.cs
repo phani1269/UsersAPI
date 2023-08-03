@@ -5,7 +5,15 @@ using UsersAPI.Services;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("CorsPolicy",
+        builder =>
+        builder.WithOrigins("http://localhost", "http://host.docker.internal")
+               .AllowAnyMethod()
+               .AllowAnyHeader()
+                );
+});
 builder.Services.AddControllers();
 builder.Services.AddScoped<IUserService,UserService>();
 builder.Services.AddHostedService<IndexCreationService>();
@@ -22,8 +30,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-
-app.UseHttpsRedirection();
+app.UseCors("CorsPolicy");
 
 app.UseAuthorization();
 
