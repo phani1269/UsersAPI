@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using UsersAPI.Models;
 using UsersAPI.Services;
 
 namespace UsersAPI.Controllers
@@ -8,10 +9,11 @@ namespace UsersAPI.Controllers
     public class UsersController : ControllerBase
     {
         private readonly IUserService _userService;
-
-        public UsersController(IUserService userService)
+        private readonly ITokenExchangeService tokenExchange;
+        public UsersController(IUserService userService, ITokenExchangeService tokenExchange)
         {
             _userService = userService ?? throw new ArgumentNullException(nameof(userService));
+            this.tokenExchange = tokenExchange;
         }
 
         [HttpPost]
@@ -26,7 +28,13 @@ namespace UsersAPI.Controllers
             var users = await _userService.GetAllUsers();
             return Ok(users);
         }
+        [HttpPost]
+        public async Task<ActionResult> GenerateToken(AuthenticationModel request)
+        {
+            var authenticationResponse = await tokenExchange.AuthenticateUser(request);
 
+            return Ok(authenticationResponse);
+        }
 
     }
 

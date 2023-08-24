@@ -2,44 +2,96 @@ version: '3.4'
 
 services:
   usersapi:
-    container_name: usersapi
-    image: ${DOCKER_REGISTRY-}usersapi
-    build:
+     container_name: usersapi
+     image: ${DOCKER_REGISTRY-}usersapi
+     build:
       context: .
       dockerfile: Dockerfile
-    environment:
+     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - REDIS_CONNECTION_STRING=redis://usersdb:7000
       - EPPlus__ExcelPackage__Compatibility__IsWorksheets1Based=false
       - EPPlus__ExcelPackage__LicenseContext=NonCommercial
-    depends_on:
+      - KeyCloakSettings__KEYCLOAK_TOKEN_URL=http://host.docker.internal:9060/realms/user/protocol/openid-connect/token
+      - KeyCloakSettings__KEYCLOAK_REVOKE_URL=http://host.docker.internal:9060/realms/user/protocol/openid-connect/revoke
+      - KeyCloakSettings__GRANT_TYPE=password
+      - KeyCloakSettings__CLIENT_ID=user-client
+      - KeyCloakSettings__CLIENT_SECRET=EhHETOEGpaBvUlrjCes7h6xyATPdZn1v
+     depends_on:
       - usersdb
-    ports:
+     ports:
       - "31431:80"
-    networks: 
+     networks: 
         - nxt
 
   usersdb:
-   container_name: usersdb
-   image: redis/redis-stack-server
-   restart: always
-   environment:
-    - "REDIS_ARGS= --SAVE 10 1 --PORT 7000"
-   ports:
+    container_name: usersdb
+    image: redis/redis-stack-server
+    restart: always
+    environment:
+     - "REDIS_ARGS= --SAVE 10 1 --PORT 7000"
+    ports:
     - "7000:7000"
-   deploy:
+    deploy:
      replicas: 1
      restart_policy:
         condition: on-failure
-   volumes:
+    volumes:
     - redisData:/data
-   networks: 
+    networks: 
+        - nxt
+  postgres:
+    image: postgres:latest
+    container_name: postgres
+    environment:
+        POSTGRES_DB: postgres
+        POSTGRES_USER: USER_KEYCLOAK
+        POSTGRES_PASSWORD: USER_KEYCLOAK
+    restart: always
+    ports:
+    - "5433:5432"
+    volumes:
+    - postgres_data:/var/lib/postgresql/data/
+    networks:
+    - nxt
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin
+    environment:
+        PGADMIN_DEFAULT_EMAIL : admin@nexturn.com
+        PGADMIN_DEFAULT_PASSWORD : admin@123
+    ports:
+      - "5051:80"
+    networks: 
+      - nxt
+
+  keycloakserver:
+    image: quay.io/keycloak/keycloak:latest
+    container_name: keycloakserver
+    environment:
+        KC_DB: postgres
+        KC_DB_URL: jdbc:postgresql://postgres:5432/postgres 
+        KC_DB_USERNAME: USER_KEYCLOAK
+        KC_DB_SCHEMA: public
+        KC_DB_PASSWORD: USER_KEYCLOAK
+        KEYCLOAK_ADMIN: admin
+        KEYCLOAK_ADMIN_PASSWORD: password    
+    command: 
+     - start-dev --auto-build -Dkeycloak.profile.feature.upload_scripts=enabled -Dkeycloak.profile.feature.scripts=enabled
+    ports:
+        - "9060:8080"
+    depends_on:
+        - postgres
+    networks:
         - nxt
 
+  
+volumes:
+  redisData:
+  postgres_data:
+ 
 networks:
    nxt:
     driver: bridge
     external: true
-    
-volumes:
-  redisData:
